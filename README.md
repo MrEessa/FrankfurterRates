@@ -2,7 +2,7 @@
 
 GBP, EUR, JPY, CHF, and AUD against USD — live rates with a 30-day change indicator. Plain HTML and vanilla JS. No framework, no build step. Open `index.html` and it works.
 
-![Currency Watchlist screenshot](screenshot.png)
+<img width="869" height="533" alt="{FBA0DE68-2F4A-403F-8AF6-A953C004CC12}" src="https://github.com/user-attachments/assets/b087b624-7339-47cc-b469-9a939aaa8781" />
 
 ## Stack
 
