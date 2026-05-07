@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Currency Watchlist</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d26;
+      --surface-hover: #1f2333;
+      --border: #2a2e42;
+      --text-primary: #e8eaf2;
+      --text-secondary: #7a7f96;
+      --accent: #4a7cf7;
+      --green: #34d399;
+      --red: #f87171;
+      --radius: 12px;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #eef0f8;
+        --surface: #ffffff;
+        --surface-hover: #f6f7fd;
+        --border: #dde0f0;
+        --text-primary: #1a1d2e;
+        --text-secondary: #6b708a;
+        --accent: #3b6ef5;
+        --green: #16a34a;
+        --red: #dc2626;
+      }
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      min-height: 100vh;
+      padding: 2.5rem 1.25rem;
+    }
+
+    header {
+      max-width: 760px;
+      margin: 0 auto 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header-subtitle {
+      margin-top: 0.3rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .refresh-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      background-color: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.55rem 1.1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .refresh-btn:hover:not(:disabled) {
+      opacity: 0.88;
+    }
+
+    .refresh-btn:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    .refresh-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .refresh-icon {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+    }
+
+    .refresh-btn.spinning .refresh-icon {
+      animation: spin 0.75s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .status-bar {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-align: right;
+      margin-bottom: 1rem;
+      min-height: 1.25rem;
+    }
+
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 5rem 0;
+      gap: 1rem;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .spinner {
+      width: 34px;
+      height: 34px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+
+    .error-state {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem 2rem;
+      text-align: center;
+    }
+
+    .error-icon {
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .error-heading {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .error-detail {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      word-break: break-word;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1rem;
+    }
+
+    .currency-card {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.4rem 1.6rem;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      align-items: center;
+      column-gap: 1.2rem;
+      row-gap: 0.3rem;
+      transition: background-color 0.15s, border-color 0.15s;
+    }
+
+    .currency-card:hover {
+      background-color: var(--surface-hover);
+      border-color: var(--accent);
+    }
+
+    .card-code {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .card-name {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .card-rate {
+      font-size: 1.4rem;
+      font-weight: 600;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .card-change {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-align: right;
+      grid-column: 2;
+      grid-row: 2;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .card-change.positive { color: var(--green); }
+    .card-change.negative { color: var(--red); }
+    .card-change.neutral  { color: var(--text-secondary); }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <h1 class="header-title">Currency Watchlist</h1>
+      <p class="header-subtitle">Base: USD &nbsp;·&nbsp; Live rates via Frankfurter</p>
+    </div>
+    <button class="refresh-btn" id="refreshBtn" type="button">
+      <svg class="refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M23 4v6h-6"/>
+        <path d="M1 20v-6h6"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+      Refresh
+    </button>
+  </header>
+
+  <main>
+    <p class="status-bar" id="statusBar" aria-live="polite"></p>
+
+    <div class="loading-state" id="loadingState" role="status" aria-label="Loading rates">
+      <div class="spinner"></div>
+      <span>Fetching rates…</span>
+    </div>
+
+    <div class="error-state hidden" id="errorState" role="alert">
+      <p class="error-icon" aria-hidden="true">⚠</p>
+      <h2 class="error-heading">Could not load rates</h2>
+      <p class="error-detail" id="errorDetail"></p>
+    </div>
+
+    <div class="cards-grid hidden" id="cardsGrid"></div>
+  </main>
+
+  <script>
+    const BASE_CURRENCY = 'GBP';
+    const WATCHLIST = ['USD', 'EUR', 'JPY', 'CHF', 'AUD'];
+    const API = 'https://api.frankfurter.app';
+    const SYMBOLS = WATCHLIST.join(',');
+
+    const elLoading  = document.getElementById('loadingState');
+    const elError    = document.getElementById('errorState');
+    const elDetail   = document.getElementById('errorDetail');
+    const elGrid     = document.getElementById('cardsGrid');
+    const elStatus   = document.getElementById('statusBar');
+    const elRefresh  = document.getElementById('refreshBtn');
+
+    function isoDateDaysAgo(n) {
+      const d = new Date();
+      d.setDate(d.getDate() - n);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function formatRate(rate, code) {
+      return code === 'JPY' ? rate.toFixed(2) : rate.toFixed(4);
+    }
+
+    function setState(state) {
+      elLoading.classList.toggle('hidden', state !== 'loading');
+      elError.classList.toggle('hidden',   state !== 'error');
+      elGrid.classList.toggle('hidden',    state !== 'ready');
+      elRefresh.disabled = state === 'loading';
+      elRefresh.classList.toggle('spinning', state === 'loading');
+    }
+
+    function renderCards(latestRates, historicalRates, currencyNames) {
+      elGrid.innerHTML = '';
+
+      for (const code of WATCHLIST) {
+        const current    = latestRates[code];
+        const historical = historicalRates[code];
+        const name       = currencyNames[code] ?? code;
+
+        let changeText  = '—';
+        let changeClass = 'neutral';
+
+        if (current != null && historical != null && historical !== 0) {
+          const pct   = ((current - historical) / historical) * 100;
+          const arrow = pct >= 0 ? '▲' : '▼';
+          const sign  = pct >= 0 ? '+' : '';
+          changeText  = `${arrow} ${sign}${pct.toFixed(2)}%`;
+          changeClass = pct > 0 ? 'positive' : pct < 0 ? 'negative' : 'neutral';
+        }
+
+        const card = document.createElement('div');
+        card.className = 'currency-card';
+
+        const elCode = document.createElement('span');
+        elCode.className = 'card-code';
+        elCode.textContent = code;
+
+        const elName = document.createElement('span');
+        elName.className = 'card-name';
+        elName.textContent = name;
+
+        const elRate = document.createElement('span');
+        elRate.className = 'card-rate';
+        elRate.textContent = current != null ? formatRate(current, code) : '—';
+
+        const elChange = document.createElement('span');
+        elChange.className = `card-change ${changeClass}`;
+        elChange.textContent = changeText;
+
+        card.appendChild(elCode);
+        card.appendChild(elRate);
+        card.appendChild(elName);
+        card.appendChild(elChange);
+
+        elGrid.appendChild(card);
+      }
+    }
+
+    async function loadRates() {
+      setState('loading');
+      elStatus.textContent = '';
+
+      const histDate = isoDateDaysAgo(30);
+
+      try {
+        // GET /currencies — fetch the full map of currency codes to human-readable
+        // names so each card can display the currency's full name alongside its code
+        const reqCurrencies = fetch(`${API}/currencies`);
+
+        // GET /latest?from=USD&to=... — fetch the most recent exchange rates for all
+        // watchlist currencies; this is the "current" rate shown on each card
+        const reqLatest = fetch(`${API}/latest?from=${BASE_CURRENCY}&to=${SYMBOLS}`);
+
+        // GET /{date}?from=USD&to=... — fetch rates from exactly 30 days ago so we
+        // can compute a percentage change and show a trend indicator on each card
+        const reqHistorical = fetch(`${API}/${histDate}?from=${BASE_CURRENCY}&to=${SYMBOLS}`);
+
+        const [resCurrencies, resLatest, resHistorical] = await Promise.all([
+          reqCurrencies,
+          reqLatest,
+          reqHistorical,
+        ]);
+
+        if (!resCurrencies.ok)  throw new Error(`/currencies returned HTTP ${resCurrencies.status}`);
+        if (!resLatest.ok)      throw new Error(`/latest returned HTTP ${resLatest.status}`);
+        if (!resHistorical.ok)  throw new Error(`/${histDate} returned HTTP ${resHistorical.status}`);
+
+        const [currencyNames, latestData, historicalData] = await Promise.all([
+          resCurrencies.json(),
+          resLatest.json(),
+          resHistorical.json(),
+        ]);
+
+        renderCards(latestData.rates, historicalData.rates, currencyNames);
+        setState('ready');
+
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        elStatus.textContent = `Updated ${time}  ·  30-day comparison from ${histDate}`;
+
+      } catch (err) {
+        setState('error');
+        elDetail.textContent = err.message || 'Unknown error — check your connection and try again.';
+      }
+    }
+
+    elRefresh.addEventListener('click', loadRates);
+
+    loadRates();
+  </script>
+
+</body>
+</html>
