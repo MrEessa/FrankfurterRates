@@ -240,7 +240,7 @@
   <header>
     <div>
       <h1 class="header-title">Currency Watchlist</h1>
-      <p class="header-subtitle">Base: USD &nbsp;·&nbsp; Live rates via Frankfurter</p>
+      <p class="header-subtitle">Base: GBP &nbsp;·&nbsp; Live rates via fawazahmed0</p>
     </div>
     <button class="refresh-btn" id="refreshBtn" type="button">
       <svg class="refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -273,8 +273,7 @@
   <script>
     const BASE_CURRENCY = 'GBP';
     const WATCHLIST = ['USD', 'EUR', 'JPY', 'CHF', 'AUD'];
-    const API = 'https://api.frankfurter.app';
-    const SYMBOLS = WATCHLIST.join(',');
+    const CDN = 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api';
 
     const elLoading  = document.getElementById('loadingState');
     const elError    = document.getElementById('errorState');
@@ -355,17 +354,11 @@
       const histDate = isoDateDaysAgo(30);
 
       try {
-        // GET /currencies — fetch the full map of currency codes to human-readable
-        // names so each card can display the currency's full name alongside its code
-        const reqCurrencies = fetch(`${API}/currencies`);
+        const base = BASE_CURRENCY.toLowerCase();
 
-        // GET /latest?from=USD&to=... — fetch the most recent exchange rates for all
-        // watchlist currencies; this is the "current" rate shown on each card
-        const reqLatest = fetch(`${API}/latest?from=${BASE_CURRENCY}&to=${SYMBOLS}`);
-
-        // GET /{date}?from=USD&to=... — fetch rates from exactly 30 days ago so we
-        // can compute a percentage change and show a trend indicator on each card
-        const reqHistorical = fetch(`${API}/${histDate}?from=${BASE_CURRENCY}&to=${SYMBOLS}`);
+        const reqCurrencies  = fetch(`${CDN}@latest/v1/currencies.json`);
+        const reqLatest      = fetch(`${CDN}@latest/v1/currencies/${base}.json`);
+        const reqHistorical  = fetch(`${CDN}@${histDate}/v1/currencies/${base}.json`);
 
         const [resCurrencies, resLatest, resHistorical] = await Promise.all([
           reqCurrencies,
@@ -377,13 +370,21 @@
         if (!resLatest.ok)      throw new Error(`/latest returned HTTP ${resLatest.status}`);
         if (!resHistorical.ok)  throw new Error(`/${histDate} returned HTTP ${resHistorical.status}`);
 
-        const [currencyNames, latestData, historicalData] = await Promise.all([
+        const [namesRaw, latestData, historicalData] = await Promise.all([
           resCurrencies.json(),
           resLatest.json(),
           resHistorical.json(),
         ]);
 
-        renderCards(latestData.rates, historicalData.rates, currencyNames);
+        // API returns lowercase keys; normalise to uppercase for display
+        const currencyNames = Object.fromEntries(
+          Object.entries(namesRaw).map(([k, v]) => [k.toUpperCase(), v])
+        );
+        const toRates = obj => Object.fromEntries(
+          WATCHLIST.map(code => [code, obj[base][code.toLowerCase()]])
+        );
+
+        renderCards(toRates(latestData), toRates(historicalData), currencyNames);
         setState('ready');
 
         const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
